@@ -1,173 +1,230 @@
-# Git Basics — Hands-On Practice
+# Git Undoing Changes & Conflicts — Hands-On Practice
 
-Companion exercises for **Git Basics: Modern Version Control**.
-Work through the parts in order. Each part matches a section of the workshop.
+Companion exercises for **Git Essentials 02: Undoing Changes & Conflicts**.
+Work through the parts in order. Each part matches a section of the workshop PDF.
 
-**Requirements:** Git installed (`git --version`), a terminal, and a GitHub account (Part 4 only).
+**Requirements:** Git installed (`git --version`), a terminal, and a GitHub account (Part 5 only).
 
-**One-time setup** (skip if you've used Git on this machine before):
+---
+
+## Part 1 — The "Oops" Button (`git restore`)
+
+**Goal:** Discard local uncommitted changes safely.
+
+1. Make a messy, throwaway edit:
+   ```bash
+   change hello-world/hello-world.py to something broken
+   ```
+2. Check what Git sees:
+   ```bash
+   git status
+   ```
+3. Throw it away:
+   ```bash
+   git restore hello-world/hello-world.py
+   ```
+   **Checkpoint ✅** — `git status` is clean again; the file matches the last commit.
+
+> ❗ **Note:** Changes discarded this way are unrecoverable — there is no undo for `git restore`.
+
+---
+
+## Part 2 — Fixing the Last Commit (`git commit --amend`)
+
+**Goal:** Correct a commit message or bundle a forgotten file without a new "fix" commit.
+
+1. Fix a typo in your last commit message:
+   ```bash
+   git commit --amend
+   ```
+2. Or, if you forgot a file:
+   ```bash
+   git add forgotten_file.py
+   git commit --amend --no-edit
+   ```
+
+> ❓ **Think:** Why is `--amend` only safe on commits you haven't pushed/shared yet?
+
+---
+
+## Part 3 — Parking Work-in-Progress (`git stash`)
+
+**Goal:** Shelve incomplete work so you can switch branches without committing broken code.
+
+1. Make an uncommitted edit on your current branch.
+2. Park it:
+   ```bash
+   git stash
+   ```
+3. Switch branches, do whatever you needed to do, then come back.
+4. Bring your work back:
+   ```bash
+   git stash pop
+   ```
+
+**Checkpoint ✅** — Your uncommitted edit is back exactly where you left it.
+
+### 🔥 Drill — trigger the "switch branch needs stash" error
+
+Normally Git will happily carry an uncommitted edit across a branch switch. It only **blocks** the switch when the target branch has a *different committed version* of the same lines. Force that:
 
 ```bash
-git config --global user.name "Your Name"
-git config --global user.email "you@example.com"
+git switch -c feature-branch-2
+echo 'print("Hello, ABC!")' > hello-world/hello-world.py   # uncommitted edit, do NOT commit
+
+git stash                # set this aside for a moment
+git switch main
+echo 'print("Hello, from Main!")' > hello-world/hello-world.py
+git add hello-world/hello-world.py
+git commit -m "Update greeting on main"
+
+git switch feature-branch-2
+git stash pop             # brings back the uncommitted "Hello, ABC!" edit
+
+git switch main            # <-- try this now
+```
+
+#### Expected result: switch blocked ❌
+
+```text
+error: Your local changes to the following files would be overwritten by checkout:
+        hello-world/hello-world.py
+Please commit your changes or stash them before you switch branches.
+Aborting
+```
+
+Fix it the way the error tells you to:
+```bash
+git stash
+git switch main
+```
+
+> ❓ **Think:** Why did Git allow the *first* switch (before `main` had a divergent commit) but block the second one?
+
+---
+
+## Part 4 — Simple Merge Conflicts
+
+**Goal:** Recognize and resolve a real conflict.
+
+1. Edit the **same line** of `hello-world/hello-world.py` differently on two branches (or one branch vs. the committed version on `main`), then attempt a merge:
+   ```bash
+   git merge <branch-name>
+   ```
+2. Open the file and find the conflict markers:
+   ```
+   <<<<<<< HEAD (Current Change)
+   const timeout = 5000;
+   =======
+   const timeout = 3000;
+   >>>>>>> feature-branch (Incoming Change)
+   ```
+3. **The Golden Rule:** Read both sides. Never blind-accept. Delete all three markers and leave only the final code you want.
+4. Stage and commit the resolution:
+   ```bash
+   git add hello-world/hello-world.py
+   git commit
+   ```
+
+### 🔥 Drill — trigger a real merge conflict
+
+Continuing from the drill above, `main` and `feature-branch-2` now have **different committed content** on the same line of `hello-world.py` — that's exactly what's needed for `git merge` to conflict instead of just fast-forwarding:
+
+```bash
+git switch feature-branch-2
+git add hello-world/hello-world.py
+git commit -m "Update greeting on feature-branch-2"   # commit the "Hello, ABC!" line
+
+git switch main
+git merge feature-branch-2
+```
+
+#### Expected result: merge conflict ❌
+
+```text
+Auto-merging hello-world/hello-world.py
+CONFLICT (content): Merge conflict in hello-world/hello-world.py
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+Open the file, you'll see:
+
+```text
+<<<<<<< HEAD
+print("Hello, from Main!")
+=======
+print("Hello, ABC!")
+>>>>>>> feature-branch-2
+```
+Resolve it (delete the markers, keep the line you want), then:
+```bash
+git add hello-world/hello-world.py
+git commit
 ```
 
 ---
 
-## Part 1 — Initializing a Repository (`git init`)
+## Part 5 — Interactive Exercise: Pull Request
 
-**Goal:** Turn an ordinary folder into a Git workspace.
+**Task:** Create a branch, change a line in `hello-world` or `bye-world`, and send a Pull Request to `main`.
 
-1. Check the folder is *not* a repository yet:
-   ```bash
-   git status
-   ```
-   > ❓ What error do you get? Why?
-2. Initialize the repository:
-   ```bash
-   git init
-   ```
-3. Prove the hidden `.git` directory exists:
-   ```bash
-   ls -a        # Windows PowerShell: ls -Force
-   ```
+> **Why a Pull Request instead of pushing directly to `main`?**
+> Pushing directly to a shared `main` branch is dangerous and causes chaos. PRs enforce code review, trigger automated testing, and provide a safe UI to spot and resolve conflicts before they break production.
 
-**Checkpoint ✅** — `git status` now says `On branch main` (or `master`) with `No commits yet`.
-
-> ❓ **Think:** What happens if you delete the `.git` folder? What would you lose?
+Steps:
+```bash
+git switch -c my-fix
+change a line in hello-world/hello-world.py
+git add hello-world/hello-world.py
+git commit -m "Update greeting"
+git push -u origin my-fix
+```
+Then open a Pull Request on GitHub targeting `main`.
 
 ---
 
-## Part 2 — Core Commands & Atomic Commits
+## Part 6 — Fixing History (`git revert`)
 
-**Goal:** Practice `status`, `add`, `commit`, `log` — and keep each commit to *one logical unit of work*.
+**Goal:** Safely undo a commit that's already been pushed and shared.
 
-1. Edit two files:
-   ```bash
-   change to 'print("Hello, edgar!")'
-   change to 'print("Bye, edgar!")'
-   ```
-2. **Do NOT run `git add .`** — these are two different logical changes.
-   Stage and commit them **separately**:
-   ```bash
-   git add hello-world/hello-world.py
-   git commit -m "Add hello-world script"
+```bash
+# Revert a specific commit (creates a new commit that undoes it)
+git revert <commit-hash>
 
-   git add bye-world/bye-world.py
-   git commit -m "Add bye-world script"
-   ```
-3. View your history:
-   ```bash
-   git log --oneline
-   ```
-   **Checkpoint ✅** — You see 4 commits, newest first, each with a short hash.
+# Revert without auto-committing, so you can review first
+git revert -n <commit-hash>
+```
 
-4. **Bad commit message drill.** Which of these is the best message, and why?
-   - `update`
-   - `fix stuff`
-   - `Fix login form validation for empty email`
-   - `changed project.py, README.md, styles.css and other files`
-
-5. **Rollback preview (just look, don't run):**
-   ```bash
-   git log --oneline
-   ```
-   > ❓ If `hello-world/hello-world.py` had a bug, which single commit would you need to inspect? How does committing atomically make that answer easy?
+> ❓ **Think:** Why does `revert` create a *new* commit instead of deleting the bad one?
 
 ---
 
-## Part 3 — Branching & Merging
+## Part 7 — The Dangerous Command (`git reset --hard`)
 
-**Goal:** Build a feature in an isolated branch, then merge it back into a clean `main`.
+**Goal:** Understand when a destructive rewind is (and isn't) okay.
 
-1. Confirm where you are:
-   ```bash
-   git branch
-   ```
-2. Create and switch to a feature branch:
-   ```bash
-   git switch -c feature-greeting
-   ```
-   > ❓ What does the `-c` flag do? What happens if you omit it?
-3. Make a change **on the branch**:
-   ```bash
-   change to 'print("Hello, Dennis!")'
-   ```
-4. Stage and commit the change:
-   ```bash
-   git add hello-world/hello-world.py bye-world/bye-world.py
-   git commit -m "Update greeting to Dennis"
-   ```
-5. Prove `main` is untouched:
-   ```bash
-   git switch main
-   cat hello-world/hello-world.py
-   ```
-   **Checkpoint ✅** — The greeting line is *gone* on `main`. (It's safe on the branch!)
-6. Merge the approved feature:
-   ```bash
-   git merge feature-greeting
-   cat hello-world/hello-world.py
-   ```
-   **Checkpoint ✅** — The greeting is now on `main`, and `git log --oneline` shows the branch commit.
-7. Clean up:
-   ```bash
-   git branch -d feature-greeting
-   ```
+```bash
+# DANGER: Discard all local modifications
+git reset --hard HEAD
 
-> ❓ **Think:** Why should `main` always stay deployable? What kind of code is allowed to live there?
+# Force local branch to match origin
+git reset --hard origin/main
+```
 
-### 🔥 Bonus challenge — your first merge conflict
-1. Create branch `feature-a`, change line 1 of `README.md`, commit.
-2. Switch back to `main`, change the **same line** differently, commit.
-3. Run `git merge feature-a` and read the conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`).
-4. Edit the file to keep the version you want, then `git add README.md` and `git commit`.
+> ⚠️ **NEVER use on shared branches.** Rewinding a public branch diverges your history from teammates and causes a web of merge conflicts. Only use `reset --hard` on private, local, disposable branches.
 
----
-
-## Part 4 — Remotes: Push, Pull & Clone
-
-**Goal:** Connect your local repository to GitHub and complete the full sync cycle.
-
-1. On GitHub: click **New**, name the repository `git-practice`, keep it **empty** (no README, no .gitignore), and create it.
-2. Link your local repo and push:
-   ```bash
-   git remote add origin https://github.com/YOUR-USERNAME/git-practice.git
-   git push -u origin main
-   ```
-   **Checkpoint ✅** — Refresh GitHub; all your files and commits are visible.
-3. Simulate a teammate's change: on GitHub, edit `README.md` directly in the browser and commit it there.
-4. Pull the remote change down:
-   ```bash
-   git pull origin main
-   cat README.md
-   ```
-   **Checkpoint ✅** — The browser edit now exists locally.
-5. Practice `clone` — download the whole project fresh, as a new teammate would:
-   ```bash
-   cd ..
-   git clone https://github.com/YOUR-USERNAME/git-practice.git git-practice-clone
-   cd git-practice-clone
-   git log --oneline
-   ```
-   **Checkpoint ✅** — The clone contains the *entire* history, not just the latest files.
-
-> ❓ **Think:** When do you use `clone` vs `pull`? Which direction does `push` move data?
-> 
 ---
 
 ## Quick Reference Card
 
 | Command | What it does |
 |---|---|
-| `git init` | Turn a folder into a repository |
-| `git status` | Show the state of every file — run it constantly |
-| `git add <file>` | Stage a change (use `git add .` with caution) |
-| `git commit -m "msg"` | Snapshot the staged changes permanently |
-| `git log --oneline` | Compact history view |
-| `git switch -c <name>` | Create and switch to a new branch |
-| `git merge <name>` | Bring a branch's commits into the current branch |
-| `git remote add origin <url>` | Link a local repo to GitHub |
-| `git push origin main` | Upload local commits to the remote |
-| `git pull origin main` | Download and merge remote commits |
-| `git clone <url>` | Copy an entire remote repository locally |
+| `git restore <file>` | Discard uncommitted changes to a file (unrecoverable) |
+| `git restore .` | Discard uncommitted changes to the whole directory |
+| `git commit --amend` | Rewrite the last commit's message |
+| `git commit --amend --no-edit` | Add staged changes to the last commit, keep its message |
+| `git stash` | Shelve uncommitted changes |
+| `git stash pop` | Restore and remove the latest stashed changes |
+| `git merge <branch>` | Bring another branch's commits into the current branch |
+| `git revert <commit-hash>` | Create a new commit that undoes an existing one |
+| `git reset --hard <ref>` | Permanently rewind the branch and discard changes |
