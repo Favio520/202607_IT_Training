@@ -25,4 +25,5 @@ jobs:
           node-version: '20'
 
       - name: Run tests
+        working-directory: ./automation-2
         run: npm test
