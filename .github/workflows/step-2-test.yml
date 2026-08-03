@@ -1,0 +1,31 @@
+# STEP 2 — actually test the code.
+# Path in the repo: .github/workflows/ci.yml (replace step 1's contents)
+#
+# Two new ideas:
+#   uses:  runs a pre-built action written by someone else
+#          actions/checkout  -> copies your repo onto the runner
+#                               (without this, the machine is empty!)
+#          actions/setup-node -> installs the Node version you ask for
+#   @v4    the version tag. Never leave this off.
+
+name: CI
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: go into the right directory
+        run: cd automation-2/workshop/session-07
+
+      - name: Run tests
+        run: npm test
