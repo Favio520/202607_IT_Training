@@ -1,0 +1,25 @@
+# STEP 1 — the smallest workflow that does anything.
+# Path in the repo: .github/workflows/ci.yml
+#
+# Every line matters:
+#   name      what shows up in the Actions tab
+#   on        the event that starts this workflow
+#   jobs      one or more jobs; each gets a fresh virtual machine
+#   runs-on   which machine image GitHub gives you
+#   steps     the commands, top to bottom
+
+name: CI
+
+on: push
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Say hello
+        run: echo "Hello from GitHub Actions"
+
+      - name: Show where we are
+        run: |
+          pwd
+          ls -la
