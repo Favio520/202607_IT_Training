@@ -24,5 +24,8 @@ jobs:
         with:
           node-version: '20'
 
+      - name: go into folder
+        run: cd automation-2
+
       - name: Run tests
         run: npm test
