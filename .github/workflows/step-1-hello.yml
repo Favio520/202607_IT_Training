@@ -23,3 +23,13 @@ jobs:
         run: |
           pwd
           ls -la
+  bye:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Say hello
+        run: echo "Bye from GitHub Actions"
+
+      - name: Show where we are
+        run: |
+          pwd
+          ls -la
