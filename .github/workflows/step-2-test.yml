@@ -24,8 +24,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: go into the right directory
-        run: cd automation-2/workshop/session-07
-
       - name: Run tests
+        working-directory: ./automation-2
         run: npm test
