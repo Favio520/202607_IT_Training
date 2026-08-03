@@ -7,6 +7,11 @@
 #                               (without this, the machine is empty!)
 #          actions/setup-node -> installs the Node version you ask for
 #   @v4    the version tag. Never leave this off.
+#
+#   working-directory: which folder a step runs in.
+#          Every `run:` step is a BRAND NEW shell, so `run: cd some/folder`
+#          is forgotten the moment the step ends. Use working-directory
+#          (or chain it in one step: `cd folder && npm test`).
 
 name: CI
 
@@ -24,8 +29,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: go into folder
-        run: cd ./automation-2/
-
       - name: Run tests
+        working-directory: ./automation-2
         run: npm test
