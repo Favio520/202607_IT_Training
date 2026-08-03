@@ -1,0 +1,38 @@
+# STRETCH — for anyone who finishes the lab early.
+# Path in the repo: .github/workflows/lint.yml
+#
+# A SECOND workflow file, alongside ci.yml. Both run on the same push, at the
+# same time, and each reports its own check.
+#
+# This one does need dependencies installed — eslint isn't built into Node the
+# way the test runner is. That's what `npm install` is doing here.
+#
+# Question to think about: why keep this separate from ci.yml instead of adding
+# a lint step to the existing test job? (Hint: what do you learn from one red X
+# versus two?)
+
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check code style
+        run: npm run lint

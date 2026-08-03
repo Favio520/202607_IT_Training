@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slugify — Actions Workshop</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --line: #e2e2e2;
+    --brand: #028090;
+    --bg: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    display: flex;
+    justify-content: center;
+    padding: 48px 20px;
+  }
+  main { width: 100%; max-width: 560px; }
+  h1 { font-size: 28px; margin: 0 0 6px; }
+  p.sub { color: var(--muted); margin: 0 0 32px; font-size: 15px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  input {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: inherit;
+  }
+  input:focus { outline: 2px solid var(--brand); outline-offset: 1px; border-color: var(--brand); }
+  .out {
+    margin-top: 24px;
+    padding: 20px;
+    background: #f6f8f8;
+    border-radius: 8px;
+    font-family: "Courier New", monospace;
+    font-size: 18px;
+    color: var(--brand);
+    word-break: break-all;
+    min-height: 24px;
+  }
+  footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--muted);
+  }
+  code { background: #f2f2f2; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Slugify</h1>
+  <p class="sub">A very small function, wrapped in a very real pipeline.</p>
+
+  <label for="title">Title</label>
+  <input id="title" type="text" value="Hello World" autocomplete="off">
+
+  <div class="out" id="out" aria-live="polite"></div>
+
+  <footer>
+    Built and tested by GitHub Actions. Logic lives in <code>src/format.js</code>,
+    tests in <code>src/format.test.js</code>.
+  </footer>
+</main>
+
+<script type="module">
+  import { slugify } from './src/format.js';
+
+  const input = document.getElementById('title');
+  const out = document.getElementById('out');
+
+  function render() {
+    try {
+      out.textContent = slugify(input.value) || '—';
+    } catch (err) {
+      out.textContent = err.message;
+    }
+  }
+
+  input.addEventListener('input', render);
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+# STEP 3 — final state for Session 07.
+# Path in the repo: .github/workflows/ci.yml
+#
+# Three triggers now:
+#   push              every push to main
+#   pull_request      every PR targeting main -> this is what puts the
+#                     green check / red X on the PR itself
+#   workflow_dispatch adds a "Run workflow" button in the Actions tab
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run tests
+        run: npm test

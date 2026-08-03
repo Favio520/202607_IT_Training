@@ -1,0 +1,14 @@
+{
+  "name": "actions-workshop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Hands-on repo for the GitHub Actions workshop (Sessions 07-10)",
+  "scripts": {
+    "test": "node --test src/*.test.js",
+    "lint": "eslint src/"
+  },
+  "devDependencies": {
+    "eslint": "^9.9.0"
+  }
+}
