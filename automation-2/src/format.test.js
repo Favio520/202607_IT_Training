@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { slugify } from './format.js';
 
 test('lowercases and joins words with dashes', () => {
-  assert.equal(slugify('Hello World'), 'hello_world');
+  assert.equal(slugify('Hello World'), 'hello-world');
 });
 
 test('strips accents and punctuation', () => {
