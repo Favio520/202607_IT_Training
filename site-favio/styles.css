@@ -1,0 +1,111 @@
+/* Change a colour in here, push, and you have a second thing to demo. */
+
+:root {
+  --ink: #16161a;
+  --muted: #6b6b76;
+  --line: #e5e5ea;
+  --accent: #e435b0;   /* EDIT ME: try #b8336a or #157a5b */
+  --bg: #fafafc;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 6vh 1.25rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.card {
+  width: 100%;
+  max-width: 38rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 2.5rem 2.25rem;
+  box-shadow: 0 1px 2px rgba(22, 22, 26, .04),
+              0 12px 32px rgba(22, 22, 26, .06);
+}
+
+.eyebrow {
+  margin: 0 0 .75rem;
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+
+.name {
+  border-bottom: 3px solid var(--accent);
+  padding-bottom: 1px;
+}
+
+.lede {
+  margin: 0 0 2rem;
+  color: var(--muted);
+}
+
+code {
+  background: #f2f2f6;
+  border-radius: 4px;
+  padding: .1em .35em;
+  font-size: .9em;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1.25rem;
+  margin: 0 0 2rem;
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.facts dt {
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: .3rem;
+}
+
+.facts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: .95rem;
+}
+
+.hint {
+  margin: 0;
+  padding: .9rem 1.1rem;
+  border-left: 3px solid var(--accent);
+  background: #f6f9fd;
+  border-radius: 0 8px 8px 0;
+  font-size: .9rem;
+  color: #3c3c46;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root { --ink: #ececf1; --muted: #9a9aa6; --line: #2c2c34; --bg: #131317; }
+  .card { background: #1b1b21; }
+  code { background: #26262e; }
+  .hint { background: #182028; color: #cfcfd8; }
+}
