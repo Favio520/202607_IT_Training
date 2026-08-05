@@ -1,0 +1,8 @@
+# NEVER commit the generated credentials
+workshop-credentials.txt
+facilitator/workshop-credentials.txt
+*.bak
+repos.txt
+
+.DS_Store
+Thumbs.db

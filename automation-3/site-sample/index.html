@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deployed from GitHub Actions</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="card">
+    <p class="eyebrow">GitHub Actions &rarr; Azure Storage</p>
+
+    <!-- EDIT ME: put your own name here, then commit and push. -->
+    <h1>Hello from <span class="name">your name here</span></h1>
+
+    <p class="lede">
+      If you are reading this on a <code>*.web.core.windows.net</code> address,
+      a GitHub Actions workflow uploaded this file for you. Nobody dragged it
+      into a portal.
+    </p>
+
+    <dl class="facts">
+      <div>
+        <dt>Deployed at</dt>
+        <dd id="loaded">&mdash;</dd>
+      </div>
+      <div>
+        <dt>Served from</dt>
+        <dd id="host">&mdash;</dd>
+      </div>
+      <div>
+        <dt>Build number</dt>
+        <dd id="build">&mdash;</dd>
+      </div>
+    </dl>
+
+    <p class="hint">
+      Change something on this page, push it, and watch the Actions tab.
+      The run should start within a few seconds.
+    </p>
+  </main>
+
+  <script>
+    document.getElementById('loaded').textContent =
+      new Date().toLocaleString();
+    document.getElementById('host').textContent =
+      location.host || 'local file';
+
+    // Reads the sibling file that the workflow also uploads. If this says
+    // "could not load", the folder was deployed but data.json was missing.
+    fetch('data.json', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        document.getElementById('build').textContent =
+          d.build + ' (' + d.note + ')';
+      })
+      .catch(function () {
+        document.getElementById('build').textContent = 'could not load data.json';
+      });
+  </script>
+</body>
+</html>

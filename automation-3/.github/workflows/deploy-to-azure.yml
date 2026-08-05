@@ -1,0 +1,254 @@
+# =============================================================================
+#  Deploy a folder to Azure Storage
+# =============================================================================
+#  YOU ONLY NEED TO CHANGE TWO THINGS. Both are marked  # <<< EDIT ME
+#  Search this file for "EDIT ME" and replace  site-sample  with your own
+#  folder name. The two values MUST match each other.
+# =============================================================================
+
+name: Deploy folder to Azure Storage
+
+on:
+  # -- Trigger 1: automatic, but ONLY when files inside your folder change ------
+  push:
+    paths:
+      - 'site-sample/**'                              # <<< EDIT ME (1 of 2)
+      # Leave the line below alone. It lets a change to the workflow itself
+      # trigger a run, which is handy while you are experimenting.
+      - '.github/workflows/deploy-to-azure.yml'
+
+  # -- Trigger 2: manual "Run workflow" button in the Actions tab --------------
+  workflow_dispatch:
+    inputs:
+      folder:
+        description: 'Folder to deploy (blank = use the folder set in the file)'
+        required: false
+        default: ''
+
+env:
+  SITE_FOLDER: site-sample                            # <<< EDIT ME (2 of 2)
+  # '$web' is the special container that Azure Static Website hosting serves
+  # publicly. The single quotes matter — they stop YAML/bash eating the $.
+  CONTAINER: '$web'
+
+# Two pushes in a row? Cancel the older run instead of racing it.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Upload to Azure Storage
+    runs-on: ubuntu-latest
+
+    steps:
+      # -----------------------------------------------------------------------
+      - name: Why did this run?
+        run: |
+          echo "Event        : ${{ github.event_name }}"
+          echo "Branch / ref : ${{ github.ref_name }}"
+          echo "Actor        : ${{ github.actor }}"
+          echo "Commit       : ${{ github.sha }}"
+          echo "Message      : ${{ github.event.head_commit.message }}"
+
+      # -----------------------------------------------------------------------
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      - name: Work out which folder to deploy
+        id: target
+        run: |
+          set -euo pipefail
+
+          # A manual run can override the folder; a push uses the env value.
+          FOLDER="${{ github.event.inputs.folder }}"
+          if [ -z "$FOLDER" ]; then
+            FOLDER="$SITE_FOLDER"
+          fi
+
+          # Tidy up: strip any leading/trailing slashes people paste in.
+          FOLDER="${FOLDER#/}"
+          FOLDER="${FOLDER%/}"
+
+          if [ -z "$FOLDER" ]; then
+            echo "::error::No folder configured. Set SITE_FOLDER in the workflow file."
+            exit 1
+          fi
+
+          if [ ! -d "$FOLDER" ]; then
+            echo "::error::Folder '$FOLDER' does not exist in this repository."
+            echo ""
+            echo "Folders that DO exist at the top level:"
+            find . -maxdepth 1 -mindepth 1 -type d -not -name '.*' -printf '  %f\n' | sort
+            echo ""
+            echo "Most common cause: you changed SITE_FOLDER but not the 'paths:'"
+            echo "filter at the top of the file (or the other way round), or there"
+            echo "is a typo in one of them. They must match."
+            exit 1
+          fi
+
+          FILE_COUNT="$(find "$FOLDER" -type f | wc -l | tr -d ' ')"
+          if [ "$FILE_COUNT" -eq 0 ]; then
+            echo "::error::Folder '$FOLDER' exists but has no files in it."
+            exit 1
+          fi
+
+          # Everyone in the workshop uploads into ONE shared storage account, and
+          # the folder name becomes the folder name on the website. If you leave
+          # it as the default, you overwrite whatever the last person deployed —
+          # and they overwrite you. So a push is refused until you set your own.
+          # A manual run is still allowed to deploy the sample on purpose.
+          if [ "$FOLDER" = "site-sample" ] && [ "${{ github.event_name }}" = "push" ]; then
+            echo "::error::SITE_FOLDER is still set to the default 'site-sample'."
+            echo ""
+            echo "Everyone on this workshop deploys into the same storage account,"
+            echo "so the folder name has to be yours alone. Two people deploying"
+            echo "'site-sample' would overwrite each other's page."
+            echo ""
+            echo "Open .github/workflows/deploy-to-azure.yml and change BOTH"
+            echo "'EDIT ME' values to site-<your-github-username>."
+            exit 1
+          fi
+
+          echo "folder=$FOLDER"      >> "$GITHUB_OUTPUT"
+          echo "file_count=$FILE_COUNT" >> "$GITHUB_OUTPUT"
+          echo "Deploying '$FOLDER' ($FILE_COUNT files)"
+
+      # -----------------------------------------------------------------------
+      - name: Upload files to Azure Storage
+        env:
+          # The connection string never appears in the file — it comes from
+          # Settings > Secrets and variables > Actions > Secrets.
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          FOLDER: ${{ steps.target.outputs.folder }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${AZURE_STORAGE_CONNECTION_STRING:-}" ]; then
+            echo "::error::Secret AZURE_STORAGE_CONNECTION_STRING is not set on this repository."
+            echo ""
+            echo "Forking a repository does NOT copy its secrets — your fork starts"
+            echo "with an empty secret store, so you have to add this one yourself:"
+            echo ""
+            echo "  Settings > Secrets and variables > Actions > New repository secret"
+            echo "  Name:  AZURE_STORAGE_CONNECTION_STRING"
+            echo "  Value: the connection string your facilitator gave you"
+            echo ""
+            echo "Paste it into that box and nowhere else. Never into this file —"
+            echo "this repository is public, so anything committed here is public too."
+            exit 1
+          fi
+
+          # Blobs land under a prefix named after the folder, so every attendee
+          # gets their own space in the same storage account.
+          PREFIX="$FOLDER"
+
+          echo "Container : $CONTAINER"
+          echo "Prefix    : $PREFIX/"
+          echo ""
+
+          uploaded=0
+          while IFS= read -r -d '' file; do
+            rel="${file#"$FOLDER"/}"
+
+            # Set the right Content-Type so browsers render files instead of
+            # downloading them. This is the #1 gotcha when hosting from blobs.
+            # Lower-case the extension first, so PHOTO.JPG behaves like photo.jpg.
+            ext="${file##*.}"
+            ext="${ext,,}"
+            case "$ext" in
+              html|htm)  ct="text/html; charset=utf-8" ;;
+              css)       ct="text/css; charset=utf-8" ;;
+              js|mjs)    ct="text/javascript; charset=utf-8" ;;
+              json)      ct="application/json; charset=utf-8" ;;
+              xml)       ct="application/xml; charset=utf-8" ;;
+              svg)       ct="image/svg+xml" ;;
+              png)       ct="image/png" ;;
+              jpg|jpeg)  ct="image/jpeg" ;;
+              gif)       ct="image/gif" ;;
+              webp)      ct="image/webp" ;;
+              avif)      ct="image/avif" ;;
+              ico)       ct="image/x-icon" ;;
+              woff2)     ct="font/woff2" ;;
+              woff)      ct="font/woff" ;;
+              pdf)       ct="application/pdf" ;;
+              txt|md)    ct="text/plain; charset=utf-8" ;;
+              *)         ct="application/octet-stream" ;;
+            esac
+
+            echo "  -> $PREFIX/$rel   [$ct]"
+            az storage blob upload \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+              --container-name "$CONTAINER" \
+              --name "$PREFIX/$rel" \
+              --file "$file" \
+              --content-type "$ct" \
+              --overwrite true \
+              --no-progress \
+              --output none
+            uploaded=$((uploaded + 1))
+          done < <(find "$FOLDER" -type f -print0)
+
+          echo ""
+          echo "Uploaded $uploaded file(s)."
+          echo "uploaded=$uploaded" >> "$GITHUB_ENV"
+
+          # ---------------------------------------------------------------
+          # Shortcut for later: the loop above is deliberately explicit so you
+          # can see each upload. Once you trust it, the whole thing collapses to
+          #
+          #   az storage blob upload-batch \
+          #     --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+          #     --destination "$CONTAINER" \
+          #     --destination-path "$PREFIX" \
+          #     --source "$FOLDER" \
+          #     --overwrite
+          # ---------------------------------------------------------------
+
+      # -----------------------------------------------------------------------
+      - name: Write the run summary
+        if: always()
+        env:
+          FOLDER: ${{ steps.target.outputs.folder }}
+          WEB_ENDPOINT: ${{ vars.AZURE_WEB_ENDPOINT }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Deploy to Azure Storage"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Triggered by | \`${{ github.event_name }}\` |"
+            echo "| Branch | \`${{ github.ref_name }}\` |"
+            echo "| Folder | \`${FOLDER:-<not resolved>}\` |"
+            echo "| Files uploaded | ${uploaded:-0} |"
+            echo "| Result | ${{ job.status }} |"
+            echo ""
+
+            if [ "${{ job.status }}" = "success" ] && [ -n "${FOLDER:-}" ]; then
+              if [ -n "${WEB_ENDPOINT:-}" ]; then
+                BASE="${WEB_ENDPOINT%/}"
+                echo "### Your site is live"
+                echo ""
+                # Link the index file EXPLICITLY, not the folder.
+                # Azure Storage static website hosting only guarantees the index
+                # document at the ROOT of the site. A request to a subfolder such
+                # as /my-folder/ is not guaranteed to resolve to its index.html,
+                # so always hand out the full filename.
+                echo "**[$BASE/$FOLDER/index.html]($BASE/$FOLDER/index.html)**"
+                echo ""
+                echo "All uploaded files:"
+                echo ""
+                while IFS= read -r -d '' file; do
+                  rel="${file#"$FOLDER"/}"
+                  echo "- [$rel]($BASE/$FOLDER/$rel)"
+                done < <(find "$FOLDER" -type f -print0 | sort -z)
+              else
+                echo "> Repository variable \`AZURE_WEB_ENDPOINT\` is not set, so"
+                echo "> this summary cannot show you clickable links. Ask your"
+                echo "> facilitator for the endpoint URL — your files are"
+                echo "> uploaded under \`$FOLDER/\`."
+              fi
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
